@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Mon Alternance</title>
+  <meta name="description" content="Cours, périodes école/entreprise, échéances et congés de mon alternance.">
+  <meta name="theme-color" content="#f4f5f9" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0b0e14" media="(prefers-color-scheme: dark)">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Alternance">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="css/app.css">
+  <script>
+    // Applique le thème choisi avant le premier affichage (évite un flash clair/sombre).
+    try {
+      var t = JSON.parse(localStorage.getItem('mon-alternance:v1') || '{}').reglages;
+      if (t && (t.theme === 'light' || t.theme === 'dark')) document.documentElement.dataset.theme = t.theme;
+    } catch (e) {}
+  </script>
+  <script type="module" src="js/main.js"></script>
+</head>
+<body>
+  <div class="app">
+    <nav class="sidebar" aria-label="Navigation principale"></nav>
+    <main id="view" class="view" tabindex="-1"></main>
+    <nav class="tabbar" aria-label="Navigation principale"></nav>
+  </div>
+  <div id="toasts" class="toasts" role="status" aria-live="polite"></div>
+  <noscript><p style="padding:24px">Mon Alternance a besoin de JavaScript pour fonctionner.</p></noscript>
+</body>
+</html>

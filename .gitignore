@@ -1,0 +1,11 @@
+# Rien de personnel ne doit être publié : le dépôt GitHub est public.
+# - data/ : calendrier extrait du PDF et emploi du temps NetYParéo (envoyés dans Supabase depuis le Mac)
+# - CLAUDE.md : notes de projet (contexte personnel)
+# - .claude/, lanceur local, fichiers système
+data/
+CLAUDE.md
+.claude/
+Lancer l'app.command
+.DS_Store
+*.json.bak
+GUIDE-PERSONNEL.md
