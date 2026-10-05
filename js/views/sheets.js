@@ -6,6 +6,7 @@ import { listeSujets, sujet } from '../subjects.js';
 import { TYPES_COURS, LIEUX } from '../courses.js';
 import { TYPES_CONGE, joursOuvres, joursEcoleDans } from '../calendar.js';
 import { formatLong, formatShort, formatTime, cap, todayISO } from '../dates.js';
+import { LISTES, nouvelleTache } from '../tasks.js';
 
 // ---------- Échéance ----------
 
@@ -230,6 +231,101 @@ export function ouvrirConge(existant) {
       h('button', { class: 'btn btn-primary', type: 'submit', form: 'form-conge' }, ic('check'), 'Enregistrer'),
     ],
   });
+}
+
+// ---------- Tâche ----------
+
+export function ouvrirTache(existante, prerempli = {}) {
+  const t = existante ? structuredClone(existante) : nouvelleTache(prerempli);
+  const estNouvelle = !existante;
+  const heureParDefaut = getState().reglages.heureRappels || '08:00';
+  const [rappelJour, rappelHeure] = t.rappel ? t.rappel.split('T') : [null, null];
+
+  const titre = h('input', { type: 'text', required: true, maxlength: 140, value: t.titre, placeholder: 'Ex. Envoyer le rapport à mon tuteur', autocomplete: 'off' });
+  const date = h('input', { type: 'date', value: t.date || '' });
+  const matiere = h('select', {},
+    h('option', { value: '' }, '— Aucune —'),
+    listeSujets().map((x) => h('option', { value: x.code, selected: x.code === t.matiere }, x.officiel)));
+  const notes = h('textarea', { rows: 3, placeholder: 'Détails, lien, personne à contacter…' }, t.notes);
+  const rappelActif = h('input', { type: 'checkbox', role: 'switch', checked: Boolean(t.rappel) });
+  const rappelDate = h('input', { type: 'date', value: rappelJour || t.date || todayISO(), 'aria-label': 'Date de la notification' });
+  const rappelHeureChamp = h('input', { type: 'time', value: rappelHeure || heureParDefaut, 'aria-label': 'Heure de la notification' });
+  const zoneRappel = h('div', { class: 'field-row', hidden: !t.rappel }, rappelDate, rappelHeureChamp);
+  rappelActif.addEventListener('change', () => {
+    zoneRappel.hidden = !rappelActif.checked;
+    if (rappelActif.checked && date.value && !rappelJour) rappelDate.value = date.value;
+  });
+  date.addEventListener('change', () => { if (!rappelJour && date.value) rappelDate.value = date.value; });
+
+  const form = h('form', { class: 'form', id: 'form-tache', novalidate: true },
+    champ('Tâche', titre),
+    h('fieldset', { class: 'field' }, h('legend', { class: 'field-label' }, 'Liste'),
+      segmente('liste', Object.entries(LISTES).map(([v, l]) => [v, l.label]), t.liste)),
+    h('div', { class: 'field-row' }, champ('Date (facultatif)', date), champ('Matière', matiere)),
+    h('fieldset', { class: 'field' }, h('legend', { class: 'field-label' }, 'Priorité'),
+      segmente('priorite-tache', [['', 'Aucune'], ['basse', 'Basse'], ['moyenne', 'Moyenne'], ['haute', 'Haute']], t.priorite || '')),
+    h('div', { class: 'field' },
+      h('label', { class: 'switch-row' },
+        h('span', {}, h('strong', {}, 'Programmer une notification'),
+          h('span', { class: 'muted block' }, 'Envoyée sur tes appareils à l’heure choisie (vérification toutes les 15 minutes).')),
+        rappelActif),
+      zoneRappel),
+    champ('Notes', notes));
+
+  form.addEventListener('submit', (ev) => {
+    ev.preventDefault();
+    const texte = titre.value.trim();
+    if (!texte) { titre.focus(); toast('Écris d’abord la tâche.'); return; }
+    if (rappelActif.checked && (!rappelDate.value || !rappelHeureChamp.value)) { toast('Choisis la date et l’heure de la notification.'); return; }
+    const donnees = new FormData(form);
+    const maj = {
+      titre: texte,
+      liste: donnees.get('liste') || 'perso',
+      date: date.value || null,
+      matiere: matiere.value || null,
+      priorite: donnees.get('priorite-tache') || null,
+      rappel: rappelActif.checked ? `${rappelDate.value}T${rappelHeureChamp.value}` : null,
+      notes: notes.value.trim(),
+      modifieLe: horodatage(),
+    };
+    update((s) => {
+      if (estNouvelle) s.taches.push({ ...t, ...maj });
+      else Object.assign(s.taches.find((x) => x.id === t.id) || {}, maj);
+    });
+    sheet.fermer();
+    toast(estNouvelle ? 'Tâche ajoutée' : 'Tâche enregistrée');
+  });
+
+  const supprimer = async () => {
+    if (!(await confirmer(`Supprimer « ${t.titre} » ?`, { libelle: 'Supprimer', danger: true }))) return;
+    update((s) => { s.taches = s.taches.filter((x) => x.id !== t.id); });
+    sheet.fermer();
+    toast('Tâche supprimée');
+  };
+
+  const sheet = openSheet({
+    titre: estNouvelle ? 'Nouvelle tâche' : 'Modifier la tâche',
+    corps: form,
+    pied: [
+      !estNouvelle && h('button', { class: 'btn btn-ghost btn-danger-text', type: 'button', onclick: supprimer }, ic('trash'), 'Supprimer'),
+      h('span', { class: 'spacer' }),
+      h('button', { class: 'btn btn-primary', type: 'submit', form: 'form-tache' }, ic('check'), 'Enregistrer'),
+    ],
+  });
+  if (estNouvelle && !t.titre) setTimeout(() => titre.focus(), 50);
+}
+
+export function basculerTache(id) {
+  let fait = false;
+  update((s) => {
+    const t = s.taches.find((x) => x.id === id);
+    if (!t) return;
+    t.fait = !t.fait;
+    t.faitLe = t.fait ? horodatage() : null;
+    t.modifieLe = horodatage();
+    fait = t.fait;
+  });
+  if (fait) toast('Tâche terminée', { action: 'Annuler', onAction: () => basculerTache(id) });
 }
 
 export const nomSujet = (code) => sujet(code)?.court || null;

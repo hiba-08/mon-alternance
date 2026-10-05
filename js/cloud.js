@@ -89,6 +89,7 @@ function elementsLocaux(s) {
   const m = new Map();
   for (const e of s.echeances) m.set(e.id, { collection: 'echeances', donnees: e });
   for (const c of s.conges) m.set(c.id, { collection: 'conges', donnees: c });
+  for (const t of s.taches) m.set(t.id, { collection: 'taches', donnees: t });
   for (const [uid, modif] of Object.entries(s.coursModifies)) m.set(`cours:${uid}`, { collection: 'coursModifies', donnees: { uid, ...modif } });
   for (const uid of s.examensIgnores) m.set(`examen-ignore:${uid}`, { collection: 'examensIgnores', donnees: { uid } });
   const { notifications, ...reglages } = s.reglages; // l'activation des notifications est propre à chaque appareil
@@ -99,6 +100,7 @@ function elementsLocaux(s) {
 function appliquerElement(s, l) {
   switch (l.collection) {
     case 'echeances':
+    case 'taches':
     case 'conges': {
       const liste = s[l.collection];
       const i = liste.findIndex((x) => x.id === l.id);

@@ -5,7 +5,9 @@ import { coursDuJour, regrouper, infoSource, TYPES_COURS } from '../courses.js';
 import { aFaire, compteARebours, rappelsDuJour, TYPES_ECHEANCE, PRIORITES } from '../deadlines.js';
 import { sujet } from '../subjects.js';
 import { todayISO, addDays, formatLong, formatShort, formatTime, cap, isoWeek, isValidISO, toMinutes, nowMinutes, durationLabel, relative } from '../dates.js';
-import { ouvrirCours, ouvrirEcheance, basculerFait } from './sheets.js';
+import { ouvrirCours, ouvrirEcheance, basculerFait, ouvrirTache } from './sheets.js';
+import { tachesDuJour, listeDuJour } from '../tasks.js';
+import { ligneTache } from './taches.js';
 
 export function vueAujourdhui(racine, param) {
   const state = getState();
@@ -24,6 +26,7 @@ export function vueAujourdhui(racine, param) {
         sectionCours(iso, info, blocs, estAujourdhui, state)),
       h('div', { class: 'today-side' },
         sectionEcheances(iso, estAujourdhui, state),
+        sectionTaches(iso, info, state),
         sectionRappels(iso, state),
         estAujourdhui && carteDemain(iso, ctx, state))));
 }
@@ -209,6 +212,19 @@ function sectionEcheances(iso, estAujourdhui, state) {
     groupe(estAujourdhui ? 'Aujourd’hui' : `Le ${formatShort(iso)}`, duJour) || '',
     groupe('À venir', aVenir) || '',
     h('button', { class: 'btn btn-ghost btn-block', type: 'button', onclick: () => ouvrirEcheance(null, { date: iso >= aujourdhui ? iso : aujourdhui }) }, ic('plus'), 'Ajouter une échéance'));
+  return section;
+}
+
+function sectionTaches(iso, info, state) {
+  const aujourdhui = todayISO();
+  const liste = listeDuJour(info.statut);
+  const taches = tachesDuJour(iso, state.taches, aujourdhui)
+    .sort((a, b) => (a.liste === liste ? 0 : 1) - (b.liste === liste ? 0 : 1));
+  const section = h('section', { class: 'section' },
+    sectionTitre('Tâches', h('a', { class: 'link', href: '#/taches' }, 'Tout voir')));
+  if (taches.length) section.append(h('ul', { class: 'dl-list' }, taches.map((t) => ligneTache(t, aujourdhui, { jour: iso }))));
+  section.append(h('button', { class: 'btn btn-ghost btn-block', type: 'button', onclick: () => ouvrirTache(null, { date: iso >= aujourdhui ? iso : aujourdhui, liste }) },
+    ic('plus'), taches.length ? 'Ajouter une tâche' : 'Ajouter une tâche pour ce jour'));
   return section;
 }
 

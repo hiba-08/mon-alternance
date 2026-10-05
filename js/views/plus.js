@@ -5,8 +5,6 @@ import { infoSource } from '../courses.js';
 import { formatShort } from '../dates.js';
 
 const FEUILLE_DE_ROUTE = [
-  ['V2', 'Synchronisation iPhone, iPad et Mac, installation sur l’écran d’accueil, mise à jour automatique de l’emploi du temps, vraies notifications'],
-  ['V3', 'Agenda semaine et mois avec les périodes école/entreprise, to-do list école et entreprise'],
   ['V4', 'Sessions de révision et planning proposé selon tes créneaux libres, minuteur Pomodoro'],
   ['V5', 'Notes et moyennes par UE, récap du dimanche soir'],
   ['V6', 'Journal de missions en entreprise, préparation des réunions avec ton maître d’apprentissage, suivi des absences'],
@@ -23,11 +21,13 @@ export function vuePlus(racine) {
   racine.append(
     h('header', { class: 'page-head' }, h('div', {}, h('p', { class: 'eyebrow' }, 'Mon Alternance'), h('h1', { class: 'page-title' }, 'Plus'))),
     h('ul', { class: 'menu card' },
+      lien('#/agenda', 'calendar', 'Agenda', 'Semaine et mois, périodes école et entreprise'),
       lien('#/conges', 'umbrella', 'Congés', state.conges.length ? `${state.conges.length} période${state.conges.length > 1 ? 's' : ''} posée${state.conges.length > 1 ? 's' : ''}` : 'Pose tes jours de congé'),
       lien('#/reglages', 'sliders', 'Réglages', 'Horaires, thème, rappels, données'),
       lien('#/sources', 'info', 'Sources et règles', 'D’où viennent les informations affichées')),
     h('section', { class: 'section' },
       h('h2', { class: 'section-title' }, 'Prochaines étapes'),
+      h('p', { class: 'hint' }, ic('check'), 'Déjà là : synchronisation et notifications (V2), agenda semaine/mois et tâches (V3).'),
       h('ol', { class: 'roadmap card' }, FEUILLE_DE_ROUTE.map(([v, texte]) => h('li', {}, h('span', { class: 'roadmap-tag' }, v), h('span', {}, texte))))));
 }
 

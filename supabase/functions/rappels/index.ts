@@ -1,5 +1,6 @@
 // Mon Alternance — notifications push.
-// Toutes les 15 minutes (pg_cron, clé publique) : prépare les rappels d'échéances et l'alerte de la veille
+// Toutes les 15 minutes (pg_cron, clé publique) : prépare les rappels d'échéances, les notifications
+// programmées sur les tâches et l'alerte de la veille
 // d'un passage école ↔ entreprise, puis envoie la file d'attente (table notifications) à chaque appareil abonné.
 // Depuis l'app (jeton de l'utilisatrice) : { action: 'cle' } renvoie la clé publique VAPID,
 // { action: 'test' } envoie une notification de test.
@@ -8,7 +9,7 @@ import { withSupabase } from 'npm:@supabase/server@1';
 import * as webpush from 'jsr:@negrel/webpush@0.5.0';
 
 // Contact transmis aux services de notification (Apple, Google, Mozilla) : l'adresse de l'app.
-const CONTACT = Deno.env.get('CONTACT_PUSH') ?? 'https://github.com/';
+const CONTACT = Deno.env.get('CONTACT_PUSH') ?? 'https://hiba-08.github.io/mon-alternance/';
 
 const REGLAGES_PAR_DEFAUT = {
   heureRappels: '08:00',
@@ -30,6 +31,7 @@ const MATIERES: Record<string, string> = {
   'GI-EESY': 'Empreinte environnementale', 'GI-OGI': 'Organisation industrielle', 'GI-ANGL1': 'Anglais',
   'GI-COMM': 'Communication pro', 'GI-CAPT': 'Capteurs', entreprise: 'Entreprise',
 };
+const LISTES: Record<string, string> = { ecole: 'École', entreprise: 'Entreprise', perso: 'Perso' };
 
 // ---------- Dates à l'heure de Paris ----------
 
@@ -111,10 +113,11 @@ async function mettreEnFile(admin: any, userId: string, n: { cle: string; titre:
 
 async function preparer(admin: any, userId: string) {
   const { data: elements } = await admin.from('elements').select('id,collection,donnees')
-    .eq('user_id', userId).eq('supprime', false).in('collection', ['reglages', 'echeances', 'conges']);
+    .eq('user_id', userId).eq('supprime', false).in('collection', ['reglages', 'echeances', 'conges', 'taches']);
   const reglages = { ...REGLAGES_PAR_DEFAUT, ...(elements ?? []).find((e: any) => e.id === 'reglages')?.donnees };
   const echeances = (elements ?? []).filter((e: any) => e.collection === 'echeances').map((e: any) => e.donnees);
   const conges = (elements ?? []).filter((e: any) => e.collection === 'conges').map((e: any) => e.donnees);
+  const taches = (elements ?? []).filter((e: any) => e.collection === 'taches').map((e: any) => e.donnees);
   const ici = maintenantParis();
   const maintenant = repere(ici.date, ici.minutes);
 
@@ -137,6 +140,21 @@ async function preparer(admin: any, userId: string) {
         });
       }
     }
+  }
+
+  // Notifications programmées sur les tâches (à l'heure choisie dans l'app)
+  for (const t of taches) {
+    if (t.fait || !t.rappel) continue;
+    const [jour, heure] = String(t.rappel).split('T');
+    if (!jour || !heure) continue;
+    const moment = repere(jour, minutes(heure));
+    if (moment > maintenant || maintenant - moment > 12 * 60) continue;
+    await mettreEnFile(admin, userId, {
+      cle: `tache:${t.id}:${t.rappel}`,
+      titre: `À faire : ${t.titre}`,
+      texte: `${LISTES[t.liste] ?? 'Tâche'}${MATIERES[t.matiere] ? ` · ${MATIERES[t.matiere]}` : ''}${t.date ? ` — ${dateCourte(t.date)}` : ''}`,
+      url: '#/taches',
+    });
   }
 
   // Veille d'un passage école ↔ entreprise

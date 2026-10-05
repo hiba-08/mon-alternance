@@ -2,7 +2,7 @@
 // Fichiers de l'app : « réseau d'abord » (toujours la dernière version quand c'est possible).
 // Bibliothèque Supabase (CDN, version figée) : « cache d'abord ».
 // Les appels à Supabase ne passent jamais par le cache.
-const CACHE = 'mon-alternance-v2';
+const CACHE = 'mon-alternance-v3';
 const FICHIERS = [
   './',
   'index.html',
@@ -19,8 +19,11 @@ const FICHIERS = [
   'js/calendar.js',
   'js/courses.js',
   'js/deadlines.js',
+  'js/tasks.js',
   'js/views/today.js',
   'js/views/echeances.js',
+  'js/views/agenda.js',
+  'js/views/taches.js',
   'js/views/sheets.js',
   'js/views/conges.js',
   'js/views/reglages.js',

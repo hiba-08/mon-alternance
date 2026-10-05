@@ -1,8 +1,8 @@
 # Mon Alternance
 
 Application web installable (PWA) pour organiser une alternance : où je dois être chaque jour
-(école, entreprise, congé, férié), mes cours, mes échéances et mes congés, synchronisés entre
-iPhone, iPad et Mac.
+(école, entreprise, congé, férié), mes cours, mon agenda de la semaine et du mois, mes échéances,
+mes tâches et mes congés, synchronisés entre iPhone, iPad et Mac.
 
 ## Fonctionnement
 
@@ -14,7 +14,8 @@ iPhone, iPad et Mac.
 - **Emploi du temps** : la fonction `supabase/functions/synchro-netypareo` relit un flux iCalendar
   toutes les 3 heures et signale les cours ajoutés, déplacés ou annulés.
 - **Notifications** : la fonction `supabase/functions/rappels` envoie, via Web Push, les rappels
-  d'échéances et l'alerte de la veille d'un passage école ↔ entreprise.
+  d'échéances, les notifications programmées sur les tâches et l'alerte de la veille d'un passage
+  école ↔ entreprise.
 
 ## Structure
 
@@ -25,8 +26,9 @@ js/cloud.js       Supabase : compte, synchronisation, emploi du temps, notificat
 js/calendar.js    statut de chaque jour (calendrier + jours fériés + congés + réglages)
 js/courses.js     séances, corrections, lecture iCalendar
 js/deadlines.js   échéances et rappels
+js/tasks.js       tâches (listes École, Entreprise, Perso)
 js/store.js       état local (localStorage)
-js/views/         écrans et formulaires
+js/views/         écrans (Aujourd'hui, Agenda, Échéances, Tâches…) et formulaires
 supabase/         schéma SQL, tâches planifiées, fonctions Edge
 tools/            extraction du calendrier PDF, génération des icônes
 ```

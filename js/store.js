@@ -31,6 +31,7 @@ function etatInitial() {
     version: 1,
     reglages: structuredClone(REGLAGES_PAR_DEFAUT),
     echeances: [],
+    taches: [],
     conges: [],
     coursModifies: {}, // uid de séance → { type, lieu, salle, note }
     examensIgnores: [], // uid des examens NetYParéo dont tu as supprimé l'échéance

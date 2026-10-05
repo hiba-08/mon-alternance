@@ -7,6 +7,8 @@ import { formatShort } from './dates.js';
 import * as cloud from './cloud.js';
 import { vueAujourdhui } from './views/today.js';
 import { vueEcheances } from './views/echeances.js';
+import { vueAgenda } from './views/agenda.js';
+import { vueTaches } from './views/taches.js';
 import { vueConges } from './views/conges.js';
 import { vueReglages } from './views/reglages.js';
 import { vuePlus, vueSources } from './views/plus.js';
@@ -14,7 +16,9 @@ import { vueConnexion, vueNouveauMotDePasse } from './views/connexion.js';
 
 const ROUTES = {
   aujourdhui: { vue: vueAujourdhui, titre: 'Aujourd’hui', onglet: 'aujourdhui' },
+  agenda: { vue: vueAgenda, titre: 'Agenda', onglet: 'agenda' },
   echeances: { vue: vueEcheances, titre: 'Échéances', onglet: 'echeances' },
+  taches: { vue: vueTaches, titre: 'Tâches', onglet: 'taches' },
   plus: { vue: vuePlus, titre: 'Plus', onglet: 'plus' },
   conges: { vue: vueConges, titre: 'Congés', onglet: 'plus' },
   reglages: { vue: vueReglages, titre: 'Réglages', onglet: 'plus' },
@@ -23,7 +27,9 @@ const ROUTES = {
 
 const NAV = [
   { route: 'aujourdhui', icone: 'sun', label: 'Aujourd’hui' },
+  { route: 'agenda', icone: 'calendar', label: 'Agenda' },
   { route: 'echeances', icone: 'listChecks', label: 'Échéances' },
+  { route: 'taches', icone: 'checkSquare', label: 'Tâches' },
   { route: 'conges', icone: 'umbrella', label: 'Congés', bureau: true },
   { route: 'reglages', icone: 'sliders', label: 'Réglages', bureau: true },
   { route: 'sources', icone: 'info', label: 'Sources et règles', bureau: true },
@@ -132,15 +138,35 @@ function afficher({ hautDePage = false } = {}) {
 }
 
 // Regroupe les demandes d'affichage ; attend la fin d'une saisie pour ne pas effacer un champ en cours.
+// Exception : un champ marqué data-garder-focus (ajout rapide) est recréé par sa vue avec son texte,
+// et il retrouve aussitôt le focus et la position du curseur.
 let affichagePrevu = false;
 function planifierAffichage() {
   if (affichagePrevu) return;
   affichagePrevu = true;
-  const actif = document.activeElement;
-  const saisie = actif && actif.closest?.('#view') && actif.matches('input, textarea, select');
-  const lancer = () => requestAnimationFrame(() => { affichagePrevu = false; afficher(); });
-  if (saisie) actif.addEventListener('blur', lancer, { once: true });
-  else lancer();
+  const lancer = () => requestAnimationFrame(() => {
+    // Vérifié au moment d'afficher : une saisie a pu commencer depuis la demande.
+    const actif = document.activeElement;
+    const enSaisie = actif?.closest?.('#view') && actif.matches('input, textarea, select');
+    const garder = enSaisie ? actif.dataset.garderFocus : null;
+    if (enSaisie && !garder) {
+      actif.addEventListener('blur', lancer, { once: true });
+      return;
+    }
+    const curseur = garder && { texte: actif.value, debut: actif.selectionStart, fin: actif.selectionEnd };
+    affichagePrevu = false;
+    afficher();
+    if (garder) rendreFocus(garder, curseur);
+  });
+  lancer();
+}
+
+function rendreFocus(cle, curseur) {
+  const champ = document.querySelector(`#view [data-garder-focus="${cle}"]`);
+  if (!champ) return;
+  champ.focus({ preventScroll: true });
+  const memeTexte = champ.value === curseur.texte;
+  champ.setSelectionRange(memeTexte ? curseur.debut : champ.value.length, memeTexte ? curseur.fin : champ.value.length);
 }
 
 // Les séances marquées « EXAMEN » dans NetYParéo deviennent des échéances (une seule fois par séance).
@@ -189,6 +215,9 @@ async function demarrer() {
   ajouterExamens();
 
   window.addEventListener('hashchange', () => afficher({ hautDePage: true }));
+  window.matchMedia('(min-width: 900px)').addEventListener('change', () => {
+    if (routeCourante().nom === 'agenda') planifierAffichage();
+  });
   subscribe(() => { appliquerTheme(); planifierAffichage(); });
   let examensPrevus = null;
   cloud.surChangement(() => {
@@ -199,9 +228,15 @@ async function demarrer() {
   document.addEventListener('visibilitychange', () => { if (!document.hidden) planifierAffichage(); });
   document.addEventListener('keydown', (e) => {
     if (document.querySelector('dialog[open]') || e.target.closest('input, textarea, select') || e.metaKey || e.ctrlKey || e.altKey) return;
-    if (routeCourante().nom !== 'aujourdhui') return;
-    const fleche = { ArrowLeft: 'Jour précédent', ArrowRight: 'Jour suivant' }[e.key];
-    if (fleche) document.querySelector(`[aria-label="${fleche}"]`)?.click();
+    const nom = routeCourante().nom;
+    if (nom !== 'aujourdhui' && nom !== 'agenda') return;
+    const fleche = (nom === 'aujourdhui'
+      ? { ArrowLeft: 'Jour précédent', ArrowRight: 'Jour suivant' }
+      : { ArrowLeft: 'Semaine précédente|Mois précédent', ArrowRight: 'Semaine suivante|Mois suivant' })[e.key];
+    if (fleche) {
+      const cible = fleche.split('|').map((l) => document.querySelector(`[aria-label="${l}"]`)).find(Boolean);
+      cible?.click();
+    }
   });
   setInterval(() => {
     verifierRappels();
