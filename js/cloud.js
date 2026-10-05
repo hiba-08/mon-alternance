@@ -233,6 +233,7 @@ async function premiereSynchro() {
 // Depuis le Mac (version locale) : envoie le calendrier du PDF et les séances extraites de NetYParéo
 // s'ils ne sont pas encore en ligne. Sans effet sur la version en ligne, qui n'a pas ces fichiers.
 async function televerserReferences() {
+  if (!estLocalhost()) return;
   const { data: doc, error } = await supabase.from('documents').select('cle').eq('cle', 'calendrier').maybeSingle();
   if (error) throw error;
   if (!doc) {

@@ -182,9 +182,10 @@ async function demarrer() {
   construireNavigation();
   afficher();
 
-  // Fichiers locaux (présents seulement sur le Mac) et connexion au compte, en parallèle.
-  await Promise.all([cloud.initialiser(), chargerCours()]);
-  if (!calendrierPret()) await chargerCalendrierLocal();
+  // Fichiers locaux (présents seulement sur le Mac, absents de la version en ligne) et connexion au compte.
+  const fichiersLocaux = cloud.estLocalhost() || !cloud.cloudConfigure;
+  await Promise.all([cloud.initialiser(), fichiersLocaux ? chargerCours() : null]);
+  if (!calendrierPret() && fichiersLocaux) await chargerCalendrierLocal();
   ajouterExamens();
 
   window.addEventListener('hashchange', () => afficher({ hautDePage: true }));
